@@ -1,18 +1,18 @@
 {
-  "host": "localhost:8888",
+  "host": "localhost:3000",
   "mysql": {
     "host": "localhost",
-    "user": "vagrant",
-    "password": "vagrant",
-    "database": "vagrant"
+    "user": "root",
+    "password": "",
+    "database": "sample-test-rails_development"
   },
   "database": {
     "client": "mysql",
     "connection": {
       "host": "localhost",
-      "user": "vagrant",
-      "password": "vagrant",
-      "database": "vagrant",
+      "user": "root",
+      "password": "",
+      "database": "sample-test-rails_development",
       "port": 3306
     }
   }
