@@ -4,8 +4,6 @@ class Api::UsersController < ApplicationController
   before_filter :check_missing_events_params, :check_limit_param, only: [:events]
   before_filter :check_missing_reserve_params, :check_token, :check_user_type, only: [:reserve]
 
-  COMPANY_GROUP_ID = 2
-
   def events
     @events = Event.where('start_date >= ?', @from).order(:start_date).offset(@offset).limit(@limit)
 
@@ -47,10 +45,6 @@ class Api::UsersController < ApplicationController
     end
   end
 
-  def check_limit_param
-    check_limit(@limit)
-  end
-
   def create_events
     @events.map do |event|
       {
@@ -71,15 +65,6 @@ class Api::UsersController < ApplicationController
     @token = params[:token]
     @event_id = params[:event_id]
     @reserve = params[:reserve]
-  end
-
-  def check_token
-    @user = User.find_by token: @token
-    bad_request('Bad token.', 200, 401) unless @user
-  end
-
-  def check_user_type
-    bad_request('Bad user type.', 200, 401) if @user.group_id == COMPANY_GROUP_ID
   end
 end
 
