@@ -2,9 +2,8 @@ class Api::UsersController < ApplicationController
   include ApiHelper
   skip_before_filter  :verify_authenticity_token
   before_filter :check_missing_events_params, :check_events_params, only: [:events]
-  before_filter :check_missing_reserve_params, :check_reserve_params, only: [:reserve]
+  before_filter :check_missing_reserve_params, :check_token, :check_user_type, only: [:reserve]
 
-  STUDENT_GROUP_ID = 1
   COMPANY_GROUP_ID = 2
 
   def events
@@ -15,7 +14,25 @@ class Api::UsersController < ApplicationController
   end
 
   def reserve
-    render(status: 200, json: { code: 401, message: 'Token is missing.' })
+    attend = Attend.where('event_id = ? AND user_id = ?', @event_id, @user.id).try(:last)
+
+    if attend
+      if @reserve == 'true'
+        render(status: 200, json: { code: 501, message: 'Already reserved.' })
+      else
+        attend.destroy
+        render json: { message: 'Unreserve event', code: 200 },
+               status: 200
+      end
+    else
+      if @reserve == 'true'
+        Attend.create(event_id: @event_id, user_id: @user.id)
+        render json: { message: 'Event reserved', code: 200 },
+               status: 200
+      else
+        render(status: 200, json: { code: 502, message: 'Attend do not exist.' })
+      end
+    end
   end
 
   private
@@ -61,11 +78,13 @@ class Api::UsersController < ApplicationController
     @reserve = params[:reserve]
   end
 
-  def check_reserve_params
-    user = User.find_by token: @token
-    render(status: 200, json: { code: 401, message: 'Bad token.' }) and return unless user
+  def check_token
+    @user = User.find_by token: @token
+    render(status: 200, json: { code: 401, message: 'Bad token.' }) unless @user
+  end
 
-    if user.group_id == COMPANY_GROUP_ID
+  def check_user_type
+    if @user.group_id == COMPANY_GROUP_ID
       render(status: 200, json: { code: 401, message: 'Token is missing.' })
     end
   end

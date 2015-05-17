@@ -14,4 +14,6 @@ class Attend < ActiveRecord::Base
     Time.zone.now.to_i
   end
 
+  self.primary_key = 'user_id'
+  self.primary_key = 'event_id'
 end
