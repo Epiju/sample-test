@@ -4,5 +4,7 @@ Rails.application.routes.draw do
 
     get 'users/events' => 'users#events'
     post 'users/reserve' => 'users#reserve'
+
+    post 'companies/events' => 'companies#events'
   end
 end

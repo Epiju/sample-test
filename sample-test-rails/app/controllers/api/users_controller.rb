@@ -85,7 +85,7 @@ class Api::UsersController < ApplicationController
 
   def check_user_type
     if @user.group_id == COMPANY_GROUP_ID
-      render(status: 200, json: { code: 401, message: 'Token is missing.' })
+      render(status: 200, json: { code: 401, message: 'Bad user type.' })
     end
   end
 end
