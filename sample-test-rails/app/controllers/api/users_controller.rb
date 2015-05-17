@@ -1,7 +1,7 @@
 class Api::UsersController < ApplicationController
   include ApiHelper
   skip_before_filter  :verify_authenticity_token
-  before_filter :check_missing_events_params, :check_events_params, only: [:events]
+  before_filter :check_missing_events_params, :check_limit_param, only: [:events]
   before_filter :check_missing_reserve_params, :check_token, :check_user_type, only: [:reserve]
 
   COMPANY_GROUP_ID = 2
@@ -9,8 +9,7 @@ class Api::UsersController < ApplicationController
   def events
     @events = Event.where('start_date >= ?', @from).order(:start_date).offset(@offset).limit(@limit)
 
-    render json: { events: create_events, code: 200 },
-           status: 200
+    render json: { events: create_events, code: 200 }, status: 200
   end
 
   def reserve
@@ -18,19 +17,17 @@ class Api::UsersController < ApplicationController
 
     if attend
       if @reserve == 'true'
-        render(status: 200, json: { code: 501, message: 'Already reserved.' })
+        bad_request('Already reserved.', 200, 501)
       else
         attend.destroy
-        render json: { message: 'Unreserve event', code: 200 },
-               status: 200
+        render json: { message: 'Unreserve event', code: 200 }, status: 200
       end
     else
       if @reserve == 'true'
         Attend.create(event_id: @event_id, user_id: @user.id)
-        render json: { message: 'Event reserved', code: 200 },
-               status: 200
+        render json: { message: 'Event reserved', code: 200 }, status: 200
       else
-        render(status: 200, json: { code: 502, message: 'Attend do not exist.' })
+        bad_request('Attend do not exist.', 200, 502)
       end
     end
   end
@@ -42,7 +39,7 @@ class Api::UsersController < ApplicationController
 
     missing_params << 'from' unless params[:from]
     if missing_params.any?
-      bad_request("Parameters missing: #{missing_params.join(', ')}", 400)
+      bad_request("Parameters missing: #{missing_params.join(', ')}", 400, 500)
     else
       @from = Time.parse(params[:from])
       @offset = params[:offset].try(:to_i) || 0
@@ -50,28 +47,26 @@ class Api::UsersController < ApplicationController
     end
   end
 
-  def check_events_params
-    bad_request('Wrong limit.', 400) if @limit.present? && @limit.to_i <= 0
+  def check_limit_param
+    check_limit(@limit)
   end
 
   def create_events
     @events.map do |event|
       {
-          id: event.id,
-          name: event.name,
-          start_date: event.start_date,
-          company: {
-              id: event.user.id,
-              name: event.user.name
-          }
+        id: event.id,
+        name: event.name,
+        start_date: event.start_date,
+        company: {
+            id: event.user.id,
+            name: event.user.name
+        }
       }
     end
   end
 
   def check_missing_reserve_params
-    unless params[:token].present?
-      render(status: 200, json: { code: 401, message: 'Token is missing.' })
-    end
+    bad_request('Token is missing.', 200, 401) unless @user unless params[:token].present?
 
     @token = params[:token]
     @event_id = params[:event_id]
@@ -80,13 +75,11 @@ class Api::UsersController < ApplicationController
 
   def check_token
     @user = User.find_by token: @token
-    render(status: 200, json: { code: 401, message: 'Bad token.' }) unless @user
+    bad_request('Bad token.', 200, 401) unless @user
   end
 
   def check_user_type
-    if @user.group_id == COMPANY_GROUP_ID
-      render(status: 200, json: { code: 401, message: 'Bad user type.' })
-    end
+    bad_request('Bad user type.', 200, 401) if @user.group_id == COMPANY_GROUP_ID
   end
 end
 

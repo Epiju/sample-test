@@ -1,15 +1,14 @@
 class Api::CompaniesController < ApplicationController
   include ApiHelper
   skip_before_filter  :verify_authenticity_token
-  before_filter :check_missing_params, :check_token, :check_user_type, :check_limit
+  before_filter :check_missing_params, :check_token, :check_user_type, :check_limit_param
 
   STUDENT_GROUP_ID = 1
 
   def events
     @events = @user.events.where('start_date >= ?', @from).order(:start_date).offset(@offset).limit(@limit)
 
-    render json: { events: create_events, code: 200 },
-           status: 200
+    render json: { events: create_events, code: 200 }, status: 200
   end
 
   private
@@ -32,7 +31,7 @@ class Api::CompaniesController < ApplicationController
     missing_params << 'token' unless params[:token]
 
     if missing_params.any?
-      render(status: 400, json: { message: 'Bad params.' })
+      bad_request("Parameters missing: #{missing_params.join(', ')}", 400, 500)
     else
       @token = params[:token]
       @from = Time.parse(params[:from])
@@ -43,16 +42,15 @@ class Api::CompaniesController < ApplicationController
 
   def check_token
     @user = User.find_by token: @token
-    render(status: 200, json: { code: 401, message: 'Bad token.' }) unless @user
+
+    bad_request('Bad token', 200, 401) unless @user
   end
 
   def check_user_type
-    if @user.group_id == STUDENT_GROUP_ID
-      render(status: 200, json: { code: 401, message: 'Bad user type.' })
-    end
+    bad_request('Bad user type.', 200, 401) if @user.group_id == STUDENT_GROUP_ID
   end
 
-  def check_limit
-    bad_request('Wrong limit.', 400) if @limit.present? && @limit.to_i <= 0
+  def check_limit_param
+    check_limit(@limit)
   end
 end

@@ -5,8 +5,7 @@ class Api::LoginController < ApplicationController
 
   def login
     render json: { user: { group_id: @user.group_id, name: @user.name, id: @user.id },
-                   token: @user.token, code: 200 },
-           status: 200
+                   token: @user.token, code: 200 }, status: 200
   end
 
   private
@@ -18,7 +17,7 @@ class Api::LoginController < ApplicationController
     missing_params << 'password' unless params[:password]
 
     if missing_params.any?
-      bad_request("Parameters missing: #{missing_params.join(', ')}", 200)
+      bad_request("Parameters missing: #{missing_params.join(', ')}", 200, 500)
     else
       @email = params[:email]
       @password = params[:password]
@@ -28,7 +27,7 @@ class Api::LoginController < ApplicationController
   def check_params
     @user = User.find_by email: @email
 
-    bad_request('Wrong username', 200) and return unless @user
-    bad_request('Wrong password', 200) unless @user.password == Digest::SHA1.hexdigest(@password)
+    bad_request('Wrong username', 200, 500) and return unless @user
+    bad_request('Wrong password', 200, 500) unless @user.password == Digest::SHA1.hexdigest(@password)
   end
 end
